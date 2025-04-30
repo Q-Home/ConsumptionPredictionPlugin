@@ -12,7 +12,8 @@ This plugin is designed to predict and manage energy consumption using machine l
 
 1. **Download the Plugin**  
    You can directly install the plugin in Loxberry using the following link:  
-   [Install Consumption Prediction Plugin v0.0.1](https://github.com/Q-Home/ConsumptionPredictionPlugin/archive/refs/tags/v0.0.1.zip)
+   https://github.com/Q-Home/ConsumptionPredictionPlugin/archive/refs/tags/v0.0.1.zip
+   
 
 2. **Upload to Loxberry**  
    Alternatively, download the plugin manually from the link above and upload it via the Loxberry interface under **Plugins > Install Plugin**.
