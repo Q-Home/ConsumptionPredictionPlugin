@@ -10,9 +10,9 @@ $helptemplate = "help.html";
 // Navigation
 $navbar[1]['Name'] = 'Home';
 $navbar[1]['URL'] = 'index.php';
-$navbar[1]['active'] = true;
 $navbar[2]['Name'] = 'Consumption';
 $navbar[2]['URL'] = 'consumption.php';
+$navbar[2]['active'] = true;
 $navbar[3]['Name'] = 'Predictions';
 $navbar[3]['URL'] = 'prediction.php';
 
