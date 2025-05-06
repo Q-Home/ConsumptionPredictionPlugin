@@ -12,7 +12,7 @@ This plugin is designed to predict and manage energy consumption using machine l
 
 1. **Download the Plugin**  
    You can directly install the plugin in Loxberry using the following link:  
-   https://github.com/Q-Home/ConsumptionPredictionPlugin/archive/refs/tags/v0.0.1.zip
+   https://github.com/Q-Home/ConsumptionPredictionPlugin/archive/refs/tags/v0.0.2.zip
    
 
 2. **Upload to Loxberry**  
