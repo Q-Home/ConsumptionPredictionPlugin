@@ -61,7 +61,7 @@ $db_ok = file_exists($dbPath);
                                 $pdo = new PDO("sqlite:$dbPath");
                                 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-                                $stmt = $pdo->query("SELECT datetime, predicted_kwh FROM predictions ORDER BY datetime DESC LIMIT 100");
+                                $stmt = $pdo->query("SELECT datetime, consumption_kwh FROM consumption_data ORDER BY datetime DESC LIMIT 100");
 
                                 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                                     $dt = new DateTime($row['datetime']);
