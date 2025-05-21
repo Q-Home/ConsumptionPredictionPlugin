@@ -44,61 +44,39 @@ PCONFIG=$LBPCONFIG/$PDIR
 PSBIN=$LBPSBIN/$PDIR
 PBIN=$LBPBIN/$PDIR
 
-/usr/bin/python3 -m pip install --quiet --no-cache-dir paho-mqtt
-
-DB="/opt/loxberry/data/plugins/consumption_prediction/energy_data.sqlite"
-
-echo "Ensuring SQLite DB schema exists..."
-
-# Create consumption_data table if it doesn't exist
-sqlite3 /opt/loxberry/data/plugins/consumption_prediction/energy_data.sqlite "CREATE TABLE IF NOT EXISTS consumption_data (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    datetime TEXT NOT NULL,
-    consumption_kwh REAL NOT NULL
-);"
-
-# Create predictions table if it doesn't exist
-sqlite3 /opt/loxberry/data/plugins/consumption_prediction/energy_data.sqlite "CREATE TABLE IF NOT EXISTS predictions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    datetime TEXT NOT NULL,
-    predicted_kwh REAL NOT NULL
-);"
-
-# Insert 50 rows of test data into the consumption_data table
-# Insert 50 rows of test data into the consumption_data table
-# echo "Inserting test data into consumption_data..."
-
-# for i in $(seq 1 50); do
-#     # Generate random date within the last 7 days
-#     datetime=$(date -d "$((RANDOM % 7)) days ago" "+%Y-%m-%d %H:%M:%S")
-
-#     # Generate random consumption value between 0.5 kWh and 10 kWh
-#     consumption_kwh=$(echo "scale=2; $RANDOM % 950 / 100" | bc)
-
-#     # Insert the generated data into the database
-#     sqlite3 $DB "INSERT INTO consumption_data (datetime, consumption_kwh) VALUES ('$datetime', '$consumption_kwh');"
-# done
-
-# echo "Test data inserted successfully.
 
 
-#install python packages
-# Ensure the system has the latest package information
+LOG_FILE="/tmp/consumption_prediction_postinstall.log"
+exec > >(tee -a "$LOG_FILE") 2>&1
+echo "Postinstall started at $(date)"
+
+# Install the required packages
 sudo apt-get update
+pip3 install pandas scikit-learn matplotlib numpy paho-mqtt joblib influxdb-client
 
-# Install Python3 and pip3 if not already installed
-sudo apt-get install -y python3 python3-pip
+sudo /opt/loxberry/bin/plugins/consumption_prediction/run_docker_compose.sh
 
-# Install the required packages for your script
-pip3 install pandas scikit-learn matplotlib numpy sqlite3, paho-mqtt, joblib
+# Wait until InfluxDB is ready (max 60 seconds)
+echo "Waiting for InfluxDB to become available..."
+for i in {1..60}; do
+  if docker exec influxdb curl -s http://localhost:8086/health | grep -q '"status":"pass"'; then
+    echo "InfluxDB is ready."
+    break
+  fi
+  sleep 1
+done
 
-# Check installed versions
-python3 -m pip show pandas scikit-learn matplotlib numpy sqlite3
+# Install and configure
 
-#run python script in the background
-nohup python3 /opt/loxberry/bin/plugins/consumption_prediction/mqtt_to_db.py > /dev/null 2>&1 &
+sudo /opt/loxberry/bin/plugins/consumption_prediction/create_influxdb_token.sh
 
 
 
-# Exit with Status 0
+# Clean up install scripts
+rm /opt/loxberry/bin/plugins/consumption_prediction/install_grafana_influxdb.sh
+rm /opt/loxberry/bin/plugins/consumption_prediction/create_influxdb_token.sh
+
+
+
+echo "Postinstall completed at $(date)"
 exit 0

@@ -1,0 +1,64 @@
+services:
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=loxberry
+      - DOCKER_INFLUXDB_INIT_PASSWORD=loxberry
+      - DOCKER_INFLUXDB_INIT_ORG=Q-Home
+      - DOCKER_INFLUXDB_INIT_BUCKET=Energy-prediction
+      - DOCKER_INFLUXDB_INIT_RETENTION=0
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=testtoken
+    networks:
+      monitoring:
+        ipv4_address: 172.20.0.10
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.4.1
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=loxberry
+      - GF_SECURITY_ADMIN_PASSWORD=loxberry
+    depends_on:
+      - influxdb
+    networks:
+      monitoring:
+        ipv4_address: 172.20.0.11
+    restart: unless-stopped
+
+  mqtt_daemon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mqtt_daemon
+    volumes:
+      - ../../../data/plugins/consumption_prediction:/opt/loxberry/data/plugins/consumption_prediction
+    depends_on:
+      - influxdb
+    network_mode: "host"
+    # networks:
+    #   monitoring:
+    #     ipv4_address: 172.20.0.12
+    restart: unless-stopped
+
+volumes:
+  influxdb-data:
+  grafana-data:
+
+networks:
+  monitoring:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+          gateway: 172.20.0.1

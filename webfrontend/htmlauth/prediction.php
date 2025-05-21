@@ -8,13 +8,17 @@ $helplink = "http://www.loxwiki.eu:80/x/2wzL";
 $helptemplate = "help.html";
 
 // Navigation
+// Navigation
 $navbar[1]['Name'] = 'Home';
 $navbar[1]['URL'] = 'index.php';
+$navbar[2]['active'] = true;
 $navbar[2]['Name'] = 'Consumption';
 $navbar[2]['URL'] = 'consumption.php';
 $navbar[3]['Name'] = 'Predictions';
 $navbar[3]['URL'] = 'prediction.php';
-$navbar[3]['active'] = true;
+$navbar[4]['Name'] = 'Settings';
+$navbar[4]['URL'] = 'settings.php';
+
 
 LBWeb::lbheader($template_title, $helplink, $helptemplate);
 
@@ -27,18 +31,14 @@ $db_ok = file_exists($dbPath);
     table {
         width: 100%;
         margin-top: 20px;
+        table-layout: fixed;
     }
-
-    .table {
-    table-layout: fixed;
-    width: 100% !important;
-    }
-
 
     th, td {
         text-align: center;
         padding: 10px;
         border: 1px solid #dee2e6;
+        word-wrap: break-word;
     }
 
     th {
@@ -49,28 +49,25 @@ $db_ok = file_exists($dbPath);
 <div class="container mt-4">
     <div class="row">
         <div class="col-12">
-
             <?php if ($db_ok): ?>
                 <div class="table-responsive">
-                <h3 class="mb-4">Consumption_data</h3>
-                    <table class="table table-striped table-bordered">
-                        <thead><tr><th>Datetime</th><th>Consumed kWh</th></tr></thead>
+                    <h3 class="mb-4">Energy Predictions</h3>
+                    <table class="table table-striped table-bordered w-100">
+                        <thead><tr><th>Datetime</th><th>Predicted kWh</th></tr></thead>
                         <tbody>
                             <?php
                             try {
                                 $pdo = new PDO("sqlite:$dbPath");
                                 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-                                $stmt = $pdo->query("SELECT datetime, predicted_kwh FROM predictions ORDER BY datetime DESC LIMIT 720");
+                                $stmt = $pdo->query("SELECT datetime, predicted_kwh FROM predictions ORDER BY datetime ASC");
 
                                 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                                     $dt = new DateTime($row['datetime']);
-                                    $datetime = $dt->format('d-m-y H:i');  // Format: day-month-year hour:minute
-                                    $kwh = htmlspecialchars($row['consumption_kwh']);
+                                    $datetime = $dt->format('d-m-y H:i'); // Format: dd-mm-yy HH:MM
+                                    $kwh = htmlspecialchars($row['predicted_kwh']);
                                     echo "<tr><td>$datetime</td><td>$kwh</td></tr>";
                                 }
-
-
                             } catch (PDOException $e) {
                                 echo '<tr><td colspan="2" class="text-danger">Database error: ' . htmlspecialchars($e->getMessage()) . '</td></tr>';
                             }
@@ -84,5 +81,4 @@ $db_ok = file_exists($dbPath);
         </div>
     </div>
 </div>
-
 <?php LBWeb::lbfooter(); ?>

@@ -19,4 +19,5 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 # Run training script every Sunday at 02:00
 0 2 * * 0    loxberry    /usr/bin/python3 /opt/loxberry/bin/plugins/consumption_prediction/train_model.py >> /opt/loxberry/log/plugins/consumption_prediction/train.log 2>&1
 
-
+# Evaluate predictions at 00:30
+30 0 * * * /usr/bin/python3 /opt/loxberry/plugins/consumption_prediction/evaluation.py

@@ -10,11 +10,13 @@ $helptemplate = "help.html";
 // Navigation
 $navbar[1]['Name'] = 'Home';
 $navbar[1]['URL'] = 'index.php';
+$navbar[3]['active'] = true;
 $navbar[2]['Name'] = 'Consumption';
 $navbar[2]['URL'] = 'consumption.php';
-$navbar[2]['active'] = true;
 $navbar[3]['Name'] = 'Predictions';
 $navbar[3]['URL'] = 'prediction.php';
+$navbar[4]['Name'] = 'Settings';
+$navbar[4]['URL'] = 'settings.php';
 
 LBWeb::lbheader($template_title, $helplink, $helptemplate);
 
@@ -61,7 +63,7 @@ $db_ok = file_exists($dbPath);
                                 $pdo = new PDO("sqlite:$dbPath");
                                 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-                                $stmt = $pdo->query("SELECT datetime, consumption_kwh FROM consumption_data ORDER BY datetime DESC LIMIT 100");
+                                $stmt = $pdo->query("SELECT datetime, consumption_kwh FROM consumption_data ORDER BY datetime ASC");
 
                                 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                                     $dt = new DateTime($row['datetime']);
