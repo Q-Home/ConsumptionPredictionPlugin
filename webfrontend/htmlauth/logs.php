@@ -25,6 +25,8 @@ $log_files = [
     "prediction.log" => "Prediction",
     "train_model.log" => "Model Training",
     "eval.log" => "Model Evaluation ",
+    "send_predictions.loh" => "Prediction Sending",
+
 ];
 
 $selected_log = $_GET['log'] ?? 'mqtt_daemon.log';
@@ -37,6 +39,7 @@ $log_lines = [];
 if ($valid) {
     $log_lines = file($log_path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     $log_lines = array_reverse($log_lines); // Newest entries first
+     $log_lines = array_slice($log_lines, 0, 500); // Only show the 500 newest lines
 }
 ?>
 

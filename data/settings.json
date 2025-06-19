@@ -5,6 +5,15 @@
     "mqtt_password": "loxberry",
     "mqtt_topic_prediction": "home\/energy\/predictions",
     "mqtt_topic_consumption": "home\/energy\/consumption",
-    "mqtt_topic_logs": "",
-    "mqtt_topic_loxone_logs": ""
+    "mqtt_topic_loxone": "home\/loxone\/logs",
+    "mqtt_topic_publish_predictions": "miniserver\/prediction\/consumption\/next",
+    "mqtt_topic_production": "home\/energy\/solar_production",
+    "mqtt_topic_loxone_logs": "",
+    "loxone_ip": "192.168.1.102",
+    "loxone_username": "Q-Home",
+    "loxone_password": "qhome2018",
+    "LAT": "50.883785",
+    "LON": "3.424479",
+    "PANEL_AREA": 10.0,
+    "EFFICIENCY": 0.20
 }

@@ -16,7 +16,6 @@ $navbar[2]['active'] = true;
 $navbar[3]['Name'] = 'Logs';
 $navbar[3]['URL'] = 'logs.php';
 
-
 LBWeb::lbheader($template_title, $helplink, $helptemplate);
 
 // Load or initialize settings
@@ -28,8 +27,15 @@ $defaults = [
     'mqtt_password' => 'loxberry',
     'mqtt_topic_prediction' => 'home/energy/predictions',
     'mqtt_topic_consumption' => 'home/energy/consumption',
-    'mqtt_topic_logs' => 'home/energy/logs',
-    'mqtt_topic_loxone'=> 'home/loxone/logs'
+    'mqtt_topic_loxone'=> 'home/loxone/logs',
+    "mqtt_topic_publish_predictions" =>"home\/energy\/predictions\/publish",
+    "loxone_ip" => "192.168.x.x",
+    "loxone_username" => "admin",
+    "loxone_password"=> "admin",
+    "LAT"=> "50.883785",
+    "LON"=> "3.424479",
+    "PANEL_AREA"=> 10.0,
+    "EFFICIENCY"=> 0.20
 ];
 $settings = $defaults;
 
@@ -45,7 +51,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     file_put_contents($settings_file, json_encode($settings, JSON_PRETTY_PRINT));
-    echo '<div class="alert alert-success text-center">Settings saved successfully.</div>';
+
+    // Restart Docker container after saving settings
+    $docker_compose_path = '/opt/loxberry/bin/plugins/consumption_prediction'; 
+    $output = shell_exec("cd $docker_compose_path && docker compose restart mqtt_daemon 2>&1");
+
+    echo '<div class="alert alert-success text-center">Settings saved successfully. Docker container restarting...</div>';
+    #echo '<pre class="bg-light p-3 border rounded">' . htmlspecialchars($output) . '</pre>';
 }
 ?>
 
@@ -81,40 +93,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="text" name="mqtt_topic_consumption" class="form-control" value="<?= htmlspecialchars($settings['mqtt_topic_consumption']) ?>">
             </div>
             <div class="form-group">
-                <label>Topic - Logs</label>
-                <input type="text" name="mqtt_topic_logs" class="form-control" value="<?= htmlspecialchars($settings['mqtt_topic_logs']) ?>">
+                <label>Topic - Publish Predictions</label>
+                <input type="text" name="mqtt_topic_publish_predictions" class="form-control" value="<?= htmlspecialchars($settings['mqtt_topic_publish_predictions']) ?>">
             </div>
             <div class="form-group">
                 <label>Topic - Loxone Logs</label>
                 <input type="text" name="mqtt_topic_loxone" class="form-control" value="<?= htmlspecialchars($settings['mqtt_topic_loxone']) ?>">
             </div>
 
-            <!-- <h5 class="mt-4">InfluxDB Settings</h5>
+            <br>
+            <h5>OpenMeteo API</h5>
             <div class="form-group">
-                <label>Influx URL</label>
-                <input type="text" name="influx_url" class="form-control" value="<?= htmlspecialchars($settings['influx_url']) ?>">
-            </div>
-            <div class="form-group">
-                <label>Influx Org</label>
-                <input type="text" name="influx_org" class="form-control" value="<?= htmlspecialchars($settings['influx_org']) ?>">
-            </div>
-            <div class="form-group">
-                <label>Influx Bucket</label>
-                <input type="text" name="influx_bucket" class="form-control" value="<?= htmlspecialchars($settings['influx_bucket']) ?>">
-            </div>
-            <div class="form-group">
-                <label>Token File Path</label>
-                <input type="text" name="token_file" class="form-control" value="<?= htmlspecialchars($settings['token_file']) ?>">
+                <label>Latitude</label>
+                <input type="password" name="LAT" class="form-control" value="<?= htmlspecialchars($settings['LAT']) ?>">
+                <label>Longitude</label>
+                <input type="password" name="LON" class="form-control" value="<?= htmlspecialchars($settings['LON']) ?>">
+                <label>Panel Area (m²)</label>
+                <input type="number" name="PANEL_AREA" class="form-control" value="<?= htmlspecialchars($settings['PANEL_AREA']) ?>">
+                <label>Efficiency (%)</label>
+                <input type="number" name="EFFICIENCY" class="form-control" value="<?= htmlspecialchars($settings['EFFICIENCY']) ?>">
             </div>
 
-            <h5 class="mt-4">Other</h5>
+            <br>
+            <h5>Loxone Settings</h5>
             <div class="form-group">
-                <label>Model File</label>
-                <input type="text" name="model_file" class="form-control" value="<?= htmlspecialchars($settings['model_file']) ?>">
-            </div> -->
-
-            <div class="text-center">
-                <button type="submit" class="btn btn-primary px-5">Save Settings</button>
+                <label>IP-address</label>
+                <input type="text" name="loxone_ipaddress" class="form-control" value="<?= htmlspecialchars($settings['loxone_ip']) ?>">
+                <label>Username</label>
+                <input type="password" name="loxone_username" class="form-control" value="<?= htmlspecialchars($settings['loxone_username']) ?>">
+                <label>Password</label>
+                <input type="password" name="loxone_password" class="form-control" value="<?= htmlspecialchars($settings['loxone_password']) ?>">
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary px-5">Save Settings</button>
+                </div>
             </div>
         </form>
     </div>

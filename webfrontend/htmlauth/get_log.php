@@ -1,6 +1,6 @@
 <?php
 $log_dir = "/opt/loxberry/data/plugins/consumption_prediction/";
-$log_files = ["mqtt_daemon.log", "prediction.log", "train_model.log", "eval.log"];
+$log_files = ["mqtt_daemon.log", "prediction.log", "train_model.log", "eval.log", "send_predictions.log"];
 
 $selected_log = $_GET['log'] ?? 'mqtt_daemon.log';
 $log_path = realpath($log_dir . basename($selected_log));

@@ -22,9 +22,9 @@ if ! docker info &> /dev/null; then
   fi
 
 
-echo "Adding loxberry to docker group..."
-usermod -aG docker "loxberry"
-echo "User loxberry added to docker group."
+echo "Adding $SUDO_USER to docker group..."
+usermod -aG docker "$SUDO_USER"
+echo "User $SUDO_USER added to docker group."
 echo "A reboot is required for group changes to apply."
 fi
 

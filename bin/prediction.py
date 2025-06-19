@@ -13,36 +13,25 @@ import json
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 
-# ---------------- Load Settings ----------------
-# Path to your JSON file
 file_path = '/opt/loxberry/data/plugins/consumption_prediction/settings.json'
-
-# Load JSON data into a Python dictionary
 with open(file_path, 'r') as file:
     settings = json.load(file)
 
-# Now `settings` is a dictionary with all your JSON values
-print(settings)
-
-
-# ---------------- Logging Setup ----------------
 LOGFILE = "/opt/loxberry/data/plugins/consumption_prediction/prediction.log"
-
 def log(msg):
     os.makedirs(os.path.dirname(LOGFILE), exist_ok=True)
     with open(LOGFILE, "a") as f:
-        f.write(f"[{datetime.now()}] {msg}\n")
+        f.write(f"[{datetime.now()}] [CONSUMPTION] {msg}\n")
+    print(f"[{datetime.now()}] [CONSUMPTION] {msg}")
 
-# ---------------- MQTT Configuration ----------------
+# MQTT
 MQTT_BROKER = settings['mqtt_broker']
 MQTT_PORT = int(settings['mqtt_port'])
 MQTT_USERNAME = settings['mqtt_username']
 MQTT_PASSWORD = settings['mqtt_password']
 MQTT_TOPIC = settings['mqtt_topic_prediction']
 
-log("MQTT settings loaded.")
-
-# ---------------- InfluxDB Configuration ----------------
+# InfluxDB
 INFLUX_URL = "http://localhost:8086"
 INFLUX_ORG = "Q-Home"
 INFLUX_BUCKET = "Energy-prediction"
@@ -51,26 +40,32 @@ TOKEN_FILE = "/opt/loxberry/data/plugins/consumption_prediction/.influx_token"
 try:
     with open(TOKEN_FILE, "r") as f:
         INFLUX_TOKEN = f.read().strip()
-except FileNotFoundError:
-    log(f"Token file not found: {TOKEN_FILE}")
+except Exception as e:
+    log(f"Failed to read InfluxDB token: {e}")
     sys.exit(1)
 
-# ---------------- Load Prediction Model ----------------
+# Load Model
 model_path = "/opt/loxberry/data/plugins/consumption_prediction/energy_model.pkl"
 if not os.path.exists(model_path):
-    log("Model file not found. Please run train_model.py first.")
+    log("Model file not found.")
     sys.exit(1)
 
-model = joblib.load(model_path)
-log("Loaded energy consumption prediction model.")
+try:
+    model = joblib.load(model_path)
+except Exception as e:
+    log(f"Error loading model: {e}")
+    sys.exit(1)
 
-# ---------------- InfluxDB Client ----------------
-client_influx = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
-query_api = client_influx.query_api()
-write_api = client_influx.write_api(write_options=SYNCHRONOUS)
-log("Connected to InfluxDB.")
+# Connect Influx
+try:
+    client_influx = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
+    query_api = client_influx.query_api()
+    write_api = client_influx.write_api(write_options=SYNCHRONOUS)
+except Exception as e:
+    log(f"InfluxDB connection failed: {e}")
+    sys.exit(1)
 
-# ---------------- Query Last 48 Hours ----------------
+# Query last 48h
 query = f'''
 from(bucket: "{INFLUX_BUCKET}")
   |> range(start: -48h)
@@ -78,9 +73,13 @@ from(bucket: "{INFLUX_BUCKET}")
   |> aggregateWindow(every: 1h, fn: mean, createEmpty: false)
   |> yield(name: "mean")
 '''
-result = query_api.query(org=INFLUX_ORG, query=query)
+try:
+    result = query_api.query(org=INFLUX_ORG, query=query)
+except Exception as e:
+    log(f"Error querying InfluxDB: {e}")
+    sys.exit(1)
 
-# ---------------- Parse Query Results ----------------
+# Parse results
 records = []
 for table in result:
     for record in table.records:
@@ -90,28 +89,19 @@ for table in result:
         })
 
 if not records:
-    log("No data returned from InfluxDB for the last 48h.")
+    log("No data received from InfluxDB.")
     sys.exit(1)
 
-log(f"Retrieved {len(records)} records from InfluxDB.")
-
-# ---------------- Prepare Data ----------------
+# Prepare history
 data = pd.DataFrame(records)
-data['datetime'] = pd.to_datetime(data['datetime'])  # Explicitly convert datetime column
-
+data['datetime'] = pd.to_datetime(data['datetime'])
 latest = data.set_index('datetime').resample('h').mean().ffill()
 latest = latest[-48:]
 
-# ---------------- Generate Features ----------------
-#start at the beginning of the current hour
-#start_time = datetime.now().replace(minute=0, second=0, microsecond=0)
-#prediction_hours = [start_time + timedelta(hours=i) for i in range(24)]
-
-# Start at midnight of the next day
-tomorrow = datetime.now().date() + timedelta(days=1)
-start_time = datetime.combine(tomorrow, datetime.min.time())  # 00:00:00 next day
-prediction_hours = [start_time + timedelta(hours=i) for i in range(24)]  # 00:00 to 23:00
-
+# Prepare future timestamps
+tomorrow = datetime.now().date() + timedelta(days=0)
+start_time = datetime.combine(tomorrow, datetime.min.time())
+prediction_hours = [start_time + timedelta(hours=i) for i in range(24)]
 
 prediction_data = pd.DataFrame({
     'datetime': prediction_hours,
@@ -120,52 +110,74 @@ prediction_data = pd.DataFrame({
     'day': [dt.day for dt in prediction_hours],
     'month': [dt.month for dt in prediction_hours],
     'year': [dt.year for dt in prediction_hours],
+    'is_weekend': [1 if dt.weekday() >= 5 else 0 for dt in prediction_hours],
 })
 
-prediction_data['lag_1h'] = latest['consumption_kwh'].iloc[-1]
-prediction_data['lag_24h'] = latest['consumption_kwh'].iloc[-24]
+# Recursive prediction
+last_1h = latest['consumption_kwh'].iloc[-1]
+last_2h = latest['consumption_kwh'].iloc[-2]
+last_3h = latest['consumption_kwh'].iloc[-3]
+lag_24h = latest['consumption_kwh'].iloc[-24]
 
-# ---------------- Run Prediction ----------------
-X_pred = prediction_data[['hour', 'day_of_week', 'day', 'month', 'year', 'lag_1h', 'lag_24h']]
-predictions = model.predict(X_pred)
+predictions = []
+for i in range(24):
+    row = prediction_data.iloc[i]
+
+    row_data = {
+        'hour': row['hour'],
+        'day_of_week': row['day_of_week'],
+        'day': row['day'],
+        'month': row['month'],
+        'year': row['year'],
+        'is_weekend': row['is_weekend'],
+        'lag_1h': last_1h,
+        'lag_2h': last_2h,
+        'lag_3h': last_3h,
+        'lag_24h': lag_24h,
+        'rolling_mean_3h': np.mean([last_1h, last_2h, last_3h]),
+        'rolling_mean_6h': np.mean([last_1h, last_2h, last_3h, lag_24h, lag_24h, lag_24h])
+    }
+
+    X_pred = pd.DataFrame([row_data])
+    pred = model.predict(X_pred)[0]
+    predictions.append(pred)
+
+    # Update rolling context
+    last_3h, last_2h, last_1h = last_2h, last_1h, pred
+
 prediction_data['predicted_kwh'] = predictions
 
-log("Hourly predictions computed.")
-
-# ---------------- Log Predictions to File ----------------
+# Log to file
 with open(LOGFILE, "a") as logfile:
-    logfile.write(f"Hourly prediction starting {start_time.strftime('%Y-%m-%d %H:%M:%S')}:\n")
+    logfile.write(f"Hourly prediction for {start_time}:\n")
     for dt, pred in zip(prediction_data['datetime'], predictions):
-        logfile.write(f"{dt.strftime('%Y-%m-%d %H:%M:%S')} - {pred:.2f} kWh\n")
+        logfile.write(f"{dt} - {pred:.2f} kWh\n")
     logfile.write("-" * 40 + "\n")
+log("Predictions logged.")
 
-log("Predictions logged to prediction.log.")
-
-# ---------------- Write Predictions to InfluxDB ----------------
+# Write to InfluxDB
 for dt, pred in zip(prediction_data['datetime'], predictions):
-    point = (
-        Point("predictions")
-        .field("predicted_kwh", float(pred))
-        .time(dt)
-    )
+    point = Point("predictions").field("predicted_kwh", float(pred)).time(dt)
     write_api.write(bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=point)
-
 log("Predictions written to InfluxDB.")
 
-# ---------------- Publish Predictions via MQTT ----------------
-client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
-client.connect(MQTT_BROKER, MQTT_PORT, 60)
+# MQTT
+try:
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
+    client.connect(MQTT_BROKER, MQTT_PORT, 60)
 
-payload = {
-    "timestamp": start_time.strftime('%Y-%m-%d %H:%M:%S'),
-    "predictions": [
-        {"datetime": dt.strftime('%Y-%m-%d %H:%M:%S'), "kwh": round(pred, 2)}
-        for dt, pred in zip(prediction_data['datetime'], predictions)
-    ]
-}
+    payload = {
+        "timestamp": start_time.strftime('%Y-%m-%d %H:%M:%S'),
+        "predictions_test": [
+            {"datetime": dt.strftime('%Y-%m-%d %H:%M:%S'), "kwh": round(pred, 2)}
+            for dt, pred in zip(prediction_data['datetime'], predictions)
+        ]
+    }
 
-client.publish(MQTT_TOPIC, json.dumps(payload))
-client.disconnect()
+    client.publish(MQTT_TOPIC, json.dumps(payload))
+    client.disconnect()
 
-log("Predictions sent to MQTT.")
+    log("Predictions sent via MQTT.")
+except Exception as e:
+    log(f"Error publishing to MQTT: {e}")

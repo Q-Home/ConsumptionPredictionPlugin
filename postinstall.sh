@@ -52,7 +52,7 @@ echo "Postinstall started at $(date)"
 
 # Install the required packages
 sudo apt-get update
-pip3 install pandas scikit-learn matplotlib numpy paho-mqtt joblib influxdb-client
+pip3 install pandas scikit-learn matplotlib numpy paho-mqtt joblib influxdb-client requests
 
 sudo /opt/loxberry/bin/plugins/consumption_prediction/run_docker_compose.sh
 
@@ -75,6 +75,8 @@ sudo /opt/loxberry/bin/plugins/consumption_prediction/create_influxdb_token.sh
 # Clean up install scripts
 rm /opt/loxberry/bin/plugins/consumption_prediction/install_grafana_influxdb.sh
 rm /opt/loxberry/bin/plugins/consumption_prediction/create_influxdb_token.sh
+rm /opt/loxberry/bin/plugins/consumption_prediction/run_docker_compose.sh
+rm /opt/loxberry/bin/plugins/consumption_prediction/create_grafana_datasource.sh
 
 
 

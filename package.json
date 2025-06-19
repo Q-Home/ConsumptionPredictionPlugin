@@ -1,6 +1,6 @@
 {
   "name": "loxberry-consumption_prediction",
-  "version": "0.0.1",
+  "version": "1.0.1",
   "description": "",
   "scripts": {
     "release:major": "node .github/release.js major false",

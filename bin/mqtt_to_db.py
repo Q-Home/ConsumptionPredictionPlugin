@@ -27,11 +27,11 @@ with open(file_path, 'r') as file:
 SERVER = settings['mqtt_broker']
 PORT = int(settings['mqtt_port'])
 TOPIC_CONSUMPTION = settings['mqtt_topic_consumption']
-TOPIC_PRODUCTION = settings['mqtt_topic_production']
+TOPIC_PRODUCTION = settings['mqtt_topic_production']  
 TOPIC_LOGS = "home/energy/logs"
 MQTT_USERNAME = settings['mqtt_username']
 MQTT_PASSWORD = settings['mqtt_password']
-
+print(TOPIC_PRODUCTION)
 CLIENT_ID = "python-influx-listener"
 TOKEN_FILE = "/opt/loxberry/data/plugins/consumption_prediction/.influx_token"
 PIDFILE = "/opt/loxberry/data/plugins/consumption_prediction/daemon_script.pid"
@@ -86,7 +86,6 @@ def on_message(client, userdata, msg):
         if not message:
             return
 
-        print(f"Received message on {topic}: {message}")
 
         if topic == TOPIC_CONSUMPTION:
             try:
@@ -99,10 +98,13 @@ def on_message(client, userdata, msg):
         elif topic == TOPIC_PRODUCTION:
             try:
                 production = float(message)
+                print(f"type of production: {type(production)}")
             except ValueError:
                 log(f"Warning: Invalid float on topic '{topic}': '{message}'")
+                print(f"Warning: Invalid float on topic '{topic}': '{message}'")
                 return
             write_to_influx("solar_production", "production_kwh", production)
+            print("wrote" + str(production) + " kWh to productiondb")
 
         elif topic == TOPIC_LOGS:
             log(f"[MQTT LOG] {message}")
