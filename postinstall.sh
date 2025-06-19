@@ -67,7 +67,6 @@ for i in {1..60}; do
 done
 
 # Install and configure
-
 sudo /opt/loxberry/bin/plugins/consumption_prediction/create_influxdb_token.sh
 
 
