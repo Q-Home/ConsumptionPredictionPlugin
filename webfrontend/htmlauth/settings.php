@@ -18,114 +18,57 @@ $navbar[3]['URL'] = 'logs.php';
 
 LBWeb::lbheader($template_title, $helplink, $helptemplate);
 
-// Load or initialize settings
+// File locations
 $settings_file = '/opt/loxberry/data/plugins/consumption_prediction/settings.json';
-$defaults = [
-    'mqtt_broker' => 'localhost',
-    'mqtt_port' => 1883,
-    'mqtt_username' => 'loxberry',
-    'mqtt_password' => 'loxberry',
-    'mqtt_topic_prediction' => 'home/energy/predictions',
-    'mqtt_topic_consumption' => 'home/energy/consumption',
-    'mqtt_topic_loxone'=> 'home/loxone/logs',
-    "mqtt_topic_publish_predictions" =>"home\/energy\/predictions\/publish",
-    "loxone_ip" => "192.168.x.x",
-    "loxone_username" => "admin",
-    "loxone_password"=> "admin",
-    "LAT"=> "50.883785",
-    "LON"=> "3.424479",
-    "PANEL_AREA"=> 10.0,
-    "EFFICIENCY"=> 0.20
-];
-$settings = $defaults;
+$docker_compose_file = '/opt/loxberry/bin/plugins/consumption_prediction/docker-compose.yml';
 
-if (file_exists($settings_file)) {
-    $settings = array_merge($defaults, json_decode(file_get_contents($settings_file), true));
-}
+// Load files
+$settings_contents = file_exists($settings_file) ? file_get_contents($settings_file) : '';
+$docker_compose_contents = file_exists($docker_compose_file) ? file_get_contents($docker_compose_file) : '';
 
 // Save form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    foreach ($settings as $key => $val) {
-        if (isset($_POST[$key])) {
-            $settings[$key] = $_POST[$key];
-        }
+    if (isset($_POST['settings_json'])) {
+        file_put_contents($settings_file, $_POST['settings_json']);
     }
-    file_put_contents($settings_file, json_encode($settings, JSON_PRETTY_PRINT));
+    if (isset($_POST['docker_compose'])) {
+        file_put_contents($docker_compose_file, $_POST['docker_compose']);
+    }
 
-    // Restart Docker container after saving settings
-    $docker_compose_path = '/opt/loxberry/bin/plugins/consumption_prediction'; 
-    $output = shell_exec("cd $docker_compose_path && docker compose restart mqtt_daemon 2>&1");
+    // Extract influx port from settings JSON for docker restart
+    $settings_array = json_decode($_POST['settings_json'], true);
+    $influx_port = $settings_array['influxdb_port'] ?? '8086';
+
+    $docker_compose_path = '/opt/loxberry/bin/plugins/consumption_production';
+    $cmd = "cd " . escapeshellarg($docker_compose_path) . 
+           " && INFLUX_PORT=" . escapeshellarg($influx_port) . " docker compose up -d 2>&1";
+    shell_exec($cmd);
 
     echo '<div class="alert alert-success text-center">Settings saved successfully. Docker container restarting...</div>';
-    #echo '<pre class="bg-light p-3 border rounded">' . htmlspecialchars($output) . '</pre>';
+
+    // Reload updated content for display after save
+    $settings_contents = file_get_contents($settings_file);
+    $docker_compose_contents = file_get_contents($docker_compose_file);
 }
 ?>
 
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 
 <div class="container mt-5">
-    <div class="col-lg-8 offset-lg-2">
-        <h3 class="mb-4">Plugin Configuration</h3>
+    <div class="col-lg-10 offset-lg-1">
+        <h3 class="mb-4">Edit Full Settings JSON File</h3>
         <form method="POST">
-            <h5>MQTT Settings</h5>
             <div class="form-group">
-                <label>Broker</label>
-                <input type="text" name="mqtt_broker" class="form-control" value="<?= htmlspecialchars($settings['mqtt_broker']) ?>">
-            </div>
-            <div class="form-group">
-                <label>Port</label>
-                <input type="number" name="mqtt_port" class="form-control" value="<?= htmlspecialchars($settings['mqtt_port']) ?>">
-            </div>
-            <div class="form-group">
-                <label>Username</label>
-                <input type="text" name="mqtt_username" class="form-control" value="<?= htmlspecialchars($settings['mqtt_username']) ?>">
-            </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" name="mqtt_password" class="form-control" value="<?= htmlspecialchars($settings['mqtt_password']) ?>">
-            </div>
-            <div class="form-group">
-                <label>Topic - Prediction</label>
-                <input type="text" name="mqtt_topic_prediction" class="form-control" value="<?= htmlspecialchars($settings['mqtt_topic_prediction']) ?>">
-            </div>
-            <div class="form-group">
-                <label>Topic - Consumption</label>
-                <input type="text" name="mqtt_topic_consumption" class="form-control" value="<?= htmlspecialchars($settings['mqtt_topic_consumption']) ?>">
-            </div>
-            <div class="form-group">
-                <label>Topic - Publish Predictions</label>
-                <input type="text" name="mqtt_topic_publish_predictions" class="form-control" value="<?= htmlspecialchars($settings['mqtt_topic_publish_predictions']) ?>">
-            </div>
-            <div class="form-group">
-                <label>Topic - Loxone Logs</label>
-                <input type="text" name="mqtt_topic_loxone" class="form-control" value="<?= htmlspecialchars($settings['mqtt_topic_loxone']) ?>">
+                <textarea name="settings_json" class="form-control" rows="20" style="font-family: monospace;"><?= htmlspecialchars($settings_contents) ?></textarea>
             </div>
 
-            <br>
-            <h5>OpenMeteo API</h5>
+            <h3 class="mb-4 mt-5">Edit Docker Compose YAML File</h3>
             <div class="form-group">
-                <label>Latitude</label>
-                <input type="password" name="LAT" class="form-control" value="<?= htmlspecialchars($settings['LAT']) ?>">
-                <label>Longitude</label>
-                <input type="password" name="LON" class="form-control" value="<?= htmlspecialchars($settings['LON']) ?>">
-                <label>Panel Area (m²)</label>
-                <input type="number" name="PANEL_AREA" class="form-control" value="<?= htmlspecialchars($settings['PANEL_AREA']) ?>">
-                <label>Efficiency (%)</label>
-                <input type="number" name="EFFICIENCY" class="form-control" value="<?= htmlspecialchars($settings['EFFICIENCY']) ?>">
+                <textarea name="docker_compose" class="form-control" rows="30" style="font-family: monospace;"><?= htmlspecialchars($docker_compose_contents) ?></textarea>
             </div>
 
-            <br>
-            <h5>Loxone Settings</h5>
-            <div class="form-group">
-                <label>IP-address</label>
-                <input type="text" name="loxone_ipaddress" class="form-control" value="<?= htmlspecialchars($settings['loxone_ip']) ?>">
-                <label>Username</label>
-                <input type="password" name="loxone_username" class="form-control" value="<?= htmlspecialchars($settings['loxone_username']) ?>">
-                <label>Password</label>
-                <input type="password" name="loxone_password" class="form-control" value="<?= htmlspecialchars($settings['loxone_password']) ?>">
-                <div class="text-center mt-4">
-                    <button type="submit" class="btn btn-primary px-5">Save Settings</button>
-                </div>
+            <div class="text-center mt-4 mb-5">
+                <button type="submit" class="btn btn-primary px-5">Save Settings</button>
             </div>
         </form>
     </div>
