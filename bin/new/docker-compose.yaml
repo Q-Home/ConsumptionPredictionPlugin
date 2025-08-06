@@ -1,0 +1,17 @@
+services:
+  mariadb:
+    image: mariadb:11.4.2-rc-alpine
+    container_name: mariadb_container
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: energy
+      MYSQL_USER: loxberry
+      MYSQL_PASSWORD: loxberry
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+volumes:
+  mariadb_data:

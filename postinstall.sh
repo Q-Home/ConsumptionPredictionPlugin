@@ -52,30 +52,30 @@ echo "Postinstall started at $(date)"
 
 # Install the required packages
 sudo apt-get update
-pip3 install pandas scikit-learn matplotlib numpy paho-mqtt joblib influxdb-client requests
+pip3 install pandas scikit-learn matplotlib numpy paho-mqtt joblib #influxdb-client requests
 
-sudo /opt/loxberry/bin/plugins/consumption_prediction/run_docker_compose.sh
+# sudo /opt/loxberry/bin/plugins/consumption_prediction/run_docker_compose.sh
 
-# Wait until InfluxDB is ready (max 60 seconds)
-echo "Waiting for InfluxDB to become available..."
-for i in {1..60}; do
-  if docker exec influxdb curl -s http://localhost:8086/health | grep -q '"status":"pass"'; then
-    echo "InfluxDB is ready."
-    break
-  fi
-  sleep 1
-done
+# # Wait until InfluxDB is ready (max 60 seconds)
+# echo "Waiting for InfluxDB to become available..."
+# for i in {1..60}; do
+#   if docker exec influxdb curl -s http://localhost:8086/health | grep -q '"status":"pass"'; then
+#     echo "InfluxDB is ready."
+#     break
+#   fi
+#   sleep 1
+# done
 
 # Install and configure
-sudo /opt/loxberry/bin/plugins/consumption_prediction/create_influxdb_token.sh
+# sudo /opt/loxberry/bin/plugins/consumption_prediction/create_influxdb_token.sh
 
 
 
 # Clean up install scripts
-rm /opt/loxberry/bin/plugins/consumption_prediction/install_grafana_influxdb.sh
-rm /opt/loxberry/bin/plugins/consumption_prediction/create_influxdb_token.sh
-rm /opt/loxberry/bin/plugins/consumption_prediction/run_docker_compose.sh
-rm /opt/loxberry/bin/plugins/consumption_prediction/create_grafana_datasource.sh
+# rm /opt/loxberry/bin/plugins/consumption_prediction/install_grafana_influxdb.sh
+# rm /opt/loxberry/bin/plugins/consumption_prediction/create_influxdb_token.sh
+# rm /opt/loxberry/bin/plugins/consumption_prediction/run_docker_compose.sh
+# rm /opt/loxberry/bin/plugins/consumption_prediction/create_grafana_datasource.sh
 
 
 

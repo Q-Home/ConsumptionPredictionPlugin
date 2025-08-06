@@ -1,4 +1,4 @@
-# ConsumptionPredictionPlugin test
+# ConsumptionPredictionPlugin
 
 A LoxBerry plugin for predicting energy consumption using data from your Loxone Smart Home system.
 
@@ -16,6 +16,28 @@ A LoxBerry plugin for predicting energy consumption using data from your Loxone 
 - **Loxone Web Services**: Enable HTTP API access on your Miniserver.
 - **User Account**: A Loxone user with permission to access energy meter data.
 
+## Installing Victoriametrics
+
+### Installing the binary
+
+Use following commands to install victoriametrics:
+wget <https://github.com/VictoriaMetrics/VictoriaMetrics/releases/latest/download/victoria-metrics-linux-amd64-v1.123.0.tar.gz>
+tar zxvf victoria-metrics-linux-amd64-v1.123.0.tar.gz
+mv victoria-metrics-prod /usr/local/bin/victoria-metrics-prod
+chmod +x /usr/local/bin/victoria-metrics-prod
+
+### Create a storage folder
+
+mkdir -p ~/victoriametrics-data
+
+### MAnual test
+
+Run following command and then visit http://localhost:8428 to see if it works.
+
+victoria-metrics \
+  -storageDataPath=~/victoriametrics-data \
+  -retentionPeriod=12
+  
 ## Loxone Setup
 
 1. **Enable Web Services**  
