@@ -1,4 +1,4 @@
-# ConsumptionPredictionPlugin
+# ConsumptionPredictionPlugin test
 
 A LoxBerry plugin for predicting energy consumption using data from your Loxone Smart Home system.
 

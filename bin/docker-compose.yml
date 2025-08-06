@@ -25,6 +25,7 @@ services:
       retries: 3
       start_period: 20s
 
+
   grafana:
     image: grafana/grafana:10.4.1
     container_name: grafana
